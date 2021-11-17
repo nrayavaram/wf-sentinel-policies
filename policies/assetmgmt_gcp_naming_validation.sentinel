@@ -1,0 +1,134 @@
+# This sentinel policies enforce usage of Resource Naming [scope]-[env]-[appid]-[system]-[name]-[resourcetype]
+# These sentinel policies enforce Wells Fargo security principles
+
+# Import common-functions/tfplan-functions/tfplan-functions.sentinel
+# with alias "plan"
+import "tfplan-functions" as plan
+import "strings"
+import "types"
+
+# List of params
+param environment
+
+# Resource Types to check labels
+resourceTypesNameMap = {
+	"google_pubsub_topic":          "name",
+	"google_secret_manager_secret": "secret_id",
+	"google_dataproc_cluster":      "name",
+	"google_storage_bucket":        "name",
+	"google_kms_key_ring":          "name",
+	"google_kms_crypto_key":        "name",
+	"google_bigquery_dataset":      "dataset_id",
+}
+
+_naming = ["google_bigquery_dataset"]
+
+check_scope = func(name) {
+	if length(name) == 2 {
+		return true
+	} else {
+		return false
+	}
+}
+
+check_environment = func(environment, name) {
+	if environment contains name {
+		return true
+	} else {
+		return false
+	}
+}
+
+check_application_id = func(name) {
+	if length(name) >= 4 and length(name) <= 6 {
+		return true
+	} else {
+		return false
+	}
+}
+
+check_system = func(name) {
+	if length(name) >= 4 and length(name) <= 6 {
+		return true
+	} else {
+		return false
+	}
+}
+
+check_resource_prefix = func(name, environment_param, split_char) {
+	resource_name_arr = strings.split(name, split_char)
+	result_map = {}
+	result_map["status"] = true
+	result_map["message"] = []
+	if length(resource_name_arr) > 4 {
+		scope = resource_name_arr[0]
+		environment = resource_name_arr[1]
+		application_id = resource_name_arr[2]
+		system = resource_name_arr[3]
+		if not check_scope(scope) {
+			result_map["status"] = false
+			append(result_map["message"], "Value of scope  is " + scope + " which is not allowed")
+		}
+		if not check_environment(environment_param, environment) {
+			result_map["status"] = false
+			append(result_map["message"], "Value of environment  is " + environment + " which is not allowed")
+		}
+		if not check_application_id(application_id) {
+			result_map["status"] = false
+			append(result_map["message"], "Value of application_id  is " + application_id + " which is not allowed")
+		}
+		if not check_system(system) {
+			result_map["status"] = false
+			append(result_map["message"], "Value of system  is " + system + " which is not allowed")
+		}
+
+	} else {
+		return undefined
+	}
+	return result_map
+}
+
+# Fetch all resources based on resourceTypes
+allResources = {}
+for resourceTypesNameMap as rt, _ {
+	resources = plan.find_resources(rt)
+	for resources as address, rc {
+		allResources[address] = rc
+	}
+}
+
+violators = {}
+messages = {}
+environment_param = environment
+
+for allResources as address, rc {
+	rt = strings.split(address, ".")
+	resource_name = rc["change"]["after"][resourceTypesNameMap[rt[0]]]
+	if rt[0] in _naming {
+		resource_prefix = check_resource_prefix(resource_name, environment_param, "_")
+	} else {
+		resource_prefix = check_resource_prefix(resource_name, environment_param, "-")
+	}
+
+	if types.type_of(resource_prefix) is "undefined" {
+		message = plan.to_string(address) + " has " + plan.to_string(resourceTypesNameMap[rt[0]]) + " with value " +
+			plan.to_string(resource_name) +
+			" that is not allowed."
+		violators[address] = rc
+		messages[address] = message
+	} else {
+		if not resource_prefix["status"] {
+			violators[address] = rc
+			messages[address] = strings.join(resource_prefix["message"], ".")
+		}
+	}
+}
+
+print(messages)
+
+# print(violators)
+
+GCP_RES_ID = rule { length(messages) is 0 }
+
+# Main rule
+main = rule { GCP_RES_ID }

@@ -83,3 +83,14 @@ policy "threat_gcp_unapproved_service_validation" {
     source = "./threat_gcp_unapproved_service_validation.sentinel"
     enforcement_level = "advisory"
 }
+    
+policy "network_gcp_subnet_route_restriction" {
+    source = "./network_gcp_subnet_route_restriction.sentinel"
+    enforcement_level = "advisory"
+}
+
+policy "network_gcp_subnet_log_enforce" {
+    source = "./network_gcp_subnet_log_enforce.sentinel"
+    enforcement_level = "advisory"
+}
+

@@ -1,0 +1,74 @@
+# This sentinel policies enforce Usage of SSL only
+# These sentinel policies enforce Wells Fargo security principles  PR-033 ,PR-036 ,PR-037
+
+# Import common-functions/tfplan-functions/tfplan-functions.sentinel
+# with alias "plan"
+import "tfplan/v2" as tfplan
+
+approved_services = [
+	"google_dataproc_cluster",
+	"google_bigquery_dataset",
+	"google_bigquery_table",
+	"google_dialogflow_cx_agent",
+	"google_container_cluster",
+	"google_secret_manager_secret",
+	"google_data_loss_prevention_deidentify_template",
+	"google_pubsub_topic",
+	"google_compute_global_forwarding_rule",
+	"google_compute_forwarding_rule",
+	"google_compute_network",
+	"google_dns_managed_zone",
+	"google_compute_firewall",
+	"google_kms_key_ring",
+	"google_kms_crypto_key",
+	"google_cloudfunctions_function",
+	"google_storage_bucket",
+	"google_compute_interconnect_attachment",
+	"google_sql_database",
+	"google_datastore_index",
+	"google_firestore_document",
+	"google_spanner_instance",
+	"google_compute_health_check",
+	"google_compute_region_backend_service",
+	"google_compute_router",
+	"google_compute_subnetwork",
+	"google_service_account",
+	"google_project_iam_member",
+	"google_folder_iam_policy",
+	"google_folder_iam_binding",
+	"google_folder_iam_member",
+	"google_organization_iam_policy",
+	"google_organization_iam_binding",
+	"google_organization_iam_member",
+	"google_project_iam_policy",
+	"google_project_iam_binding",
+	"google_project_iam_member",
+	"google_service_account_iam_policy",
+	"google_service_account_iam_binding",
+	"google_service_account_iam_member",
+]
+
+find_resources = func() {
+	resources = filter tfplan.resource_changes as address, rc {
+		rc.mode is "managed" and
+			(rc.change.actions contains "create" or rc.change.actions contains "update" or
+				rc.change.actions contains "read" or
+				rc.change.actions contains "no-op")
+	}
+	return resources
+}
+
+all_resources = find_resources()
+
+messages = {}
+for all_resources as address, rc {
+	type = rc["type"]
+	if type not in approved_services {
+		messages[address] = "Resource of type " + type + " is not allowed"
+	}
+}
+
+print(messages)
+UNAPPROVED_SERVICES = rule { length(messages) is 0 }
+
+main = rule { UNAPPROVED_SERVICES }

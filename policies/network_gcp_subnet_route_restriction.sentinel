@@ -1,0 +1,92 @@
+# This policy uses the Sentinel tfplan/v2 import to require that
+# all GCE resources following all the policies related to vpc
+
+import "strings"
+import "types"
+import "tfplan-functions" as plan
+import "generic-functions" as gen
+
+//**********************Variables to be used***********************************
+selected_node = null
+messages = {}
+
+# Get all the instances on the basis of type
+allResources = plan.find_resources("google_compute_network")
+
+//*****************************Methods*****************************************
+//as per the GCP resource's requirement 
+//address is the key and rc is the value of resource_changes in the mock of tfplan-v2 file
+
+//*****Following function is being used to validate the settings of auto_create_subnetworks mode
+check_auto_create_subnets = func(address, rc) {
+
+	key = "auto_create_subnetworks"
+	selected_node = plan.evaluate_attribute(rc, key)
+	
+	if selected_node {					
+		return plan.to_string(address) +  " no auto subnet creation mode is allowed, please mark its value false to have custom mode."			
+	} else {
+		return null
+	}
+}
+
+//*****Following function is being used to validate the settings of delete_default_routes_on_create mode
+check_delate_default_routes_on_create = func(address, rc) {
+
+	key = "delete_default_routes_on_create"
+	selected_node = plan.evaluate_attribute(rc, key)
+	
+	if selected_node {					
+		return null
+	} else {		
+		return plan.to_string(address) +  " no default routes are allowed, please mark its value true."			
+	}
+}
+
+//*******************validating auto create subnets mode***********************
+messages_auto_create_subnets = {}
+
+for allResources as address, rc {
+	message = null
+	message = check_auto_create_subnets(address, rc)
+
+	if types.type_of(message) is not "null" {
+
+		gen.create_sub_main_key_list(messages, messages_auto_create_subnets, address)
+		
+		append(messages_auto_create_subnets[address],message)
+		append(messages[address],message)
+	} 	
+}
+//*****************************************************************************
+
+//*******************validating delate default routes on create mode***********************
+messages_delate_default_routes = {}
+
+for allResources as address, rc {
+	message = null
+	message = check_delate_default_routes_on_create(address, rc)
+
+	if types.type_of(message) is not "null" {
+
+		gen.create_sub_main_key_list(messages, messages_delate_default_routes, address)
+		
+		append(messages_delate_default_routes[address],message)
+		append(messages[address],message)
+	} 	
+}
+//*****************************************************************************
+
+
+GCP_VPC_NODEFAULT = rule {
+ 	length(messages_auto_create_subnets) is 0 
+}
+
+GCP_VPC_NOWAN = rule {
+ 	length(messages_delate_default_routes) is 0 
+}
+
+# Main rule
+print(messages)
+
+main = rule { GCP_VPC_NODEFAULT and GCP_VPC_NOWAN }

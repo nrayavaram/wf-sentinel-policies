@@ -46,6 +46,8 @@ approved_services = [
 	"google_service_account_iam_policy",
 	"google_service_account_iam_binding",
 	"google_service_account_iam_member",
+	"google_compute_route",
+	"google_data_loss_prevention_job_trigger",
 ]
 
 find_resources = func() {

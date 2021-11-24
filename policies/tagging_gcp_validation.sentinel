@@ -36,6 +36,7 @@ resourceTypes = [
 	"google_bigquery_dataset",
 	"google_compute_forwarding_rule",
 	"google_storage_bucket",
+	"google_spanner_instance",
 ]
 
 # Function to Check if Labels Values are allowed
@@ -77,7 +78,7 @@ if AllLabelsExist {
 			if types.type_of(lv) is not "null" {
 				if not check_label_value(rc, lk, lv) {
 					violation = true
-					append(messages[address], plan.to_string(lk) + " Label with value " + plan.to_string(lv) + " is not allowed")
+					append(messages[address], plan.to_string(lk) + " Label with value " + plan.to_string(plan.evaluate_attribute(rc, "labels." + lk)) + " is not allowed")
 				}
 			}
 		}

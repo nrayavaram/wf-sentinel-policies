@@ -26,6 +26,7 @@ resourceTypesNameMap = {
 	"google_compute_route":                    "name",
 	"google_compute_router":                   "name",
 	"google_data_loss_prevention_job_trigger": "display_name",
+	"google_dialogflow_cx_agent":              "display_name",
 }
 
 _naming = ["google_bigquery_dataset"]

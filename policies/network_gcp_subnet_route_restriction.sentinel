@@ -14,7 +14,7 @@ messages = {}
 allResources = plan.find_resources("google_compute_network")
 
 //*****************************Methods*****************************************
-//as per the GCP resource's requirement 
+//as per the GCP resource's requirement
 //address is the key and rc is the value of resource_changes in the mock of tfplan-v2 file
 
 //*****Following function is being used to validate the settings of auto_create_subnetworks mode
@@ -22,9 +22,9 @@ check_auto_create_subnets = func(address, rc) {
 
 	key = "auto_create_subnetworks"
 	selected_node = plan.evaluate_attribute(rc, key)
-	
-	if selected_node {					
-		return plan.to_string(address) +  " no auto subnet creation mode is allowed, please mark its value false to have custom mode."			
+
+	if selected_node {
+		return plan.to_string(address) + " no auto subnet creation mode is allowed, please mark its value false to have custom mode."
 	} else {
 		return null
 	}
@@ -35,11 +35,11 @@ check_delate_default_routes_on_create = func(address, rc) {
 
 	key = "delete_default_routes_on_create"
 	selected_node = plan.evaluate_attribute(rc, key)
-	
-	if selected_node {					
+
+	if selected_node {
 		return null
-	} else {		
-		return plan.to_string(address) +  " no default routes are allowed, please mark its value true."			
+	} else {
+		return plan.to_string(address) + " no default routes are allowed, please mark its value true."
 	}
 }
 
@@ -53,11 +53,12 @@ for allResources as address, rc {
 	if types.type_of(message) is not "null" {
 
 		gen.create_sub_main_key_list(messages, messages_auto_create_subnets, address)
-		
-		append(messages_auto_create_subnets[address],message)
-		append(messages[address],message)
-	} 	
+
+		append(messages_auto_create_subnets[address], message)
+		append(messages[address], message)
+	}
 }
+
 //*****************************************************************************
 
 //*******************validating delate default routes on create mode***********************
@@ -70,20 +71,20 @@ for allResources as address, rc {
 	if types.type_of(message) is not "null" {
 
 		gen.create_sub_main_key_list(messages, messages_delate_default_routes, address)
-		
-		append(messages_delate_default_routes[address],message)
-		append(messages[address],message)
-	} 	
+
+		append(messages_delate_default_routes[address], message)
+		append(messages[address], message)
+	}
 }
+
 //*****************************************************************************
 
-
 GCP_VPC_NODEFAULT = rule {
- 	length(messages_auto_create_subnets) is 0 
+	length(messages_auto_create_subnets) is 0
 }
 
 GCP_VPC_NOWAN = rule {
- 	length(messages_delate_default_routes) is 0 
+	length(messages_delate_default_routes) is 0
 }
 
 # Main rule

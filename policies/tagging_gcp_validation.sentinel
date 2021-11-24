@@ -35,6 +35,7 @@ resourceTypes = [
 	"google_kms_crypto_key",
 	"google_bigquery_dataset",
 	"google_compute_forwarding_rule",
+	"google_storage_bucket",
 ]
 
 # Function to Check if Labels Values are allowed
